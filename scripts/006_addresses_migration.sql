@@ -1,0 +1,8 @@
+-- ============================================================
+-- Migration: user_addresses
+-- STATUS: SKIPPED
+-- Alasan: Tabel user_addresses sudah lengkap di 002_user_addresses.sql
+-- Semua kolom, triggers, dan RLS policies sudah didefinisikan.
+-- Tidak ada kolom baru yang perlu ditambahkan.
+-- ============================================================
+-- (Empty - no action needed)
