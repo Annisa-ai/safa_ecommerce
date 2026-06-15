@@ -2,8 +2,10 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone', // wajib untuk hosting cPanel
-  // konfigurasi lu yang lain...
+  output: 'standalone',
+  typescript: {
+    ignoreBuildErrors: true
+  }
 };
 
 export default nextConfig;

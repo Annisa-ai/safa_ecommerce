@@ -39,7 +39,7 @@ export interface AuthSession {
   user: User | null
   isLoggedIn: boolean
   isAdmin: boolean
-  token?: string
+  token?: string | null
 }
 
 // Product Types
