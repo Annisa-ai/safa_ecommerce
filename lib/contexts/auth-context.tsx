@@ -195,7 +195,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persistSession])
 
   const loginWithGoogle = useCallback(async () => {
-    throw new Error('Login dengan Google tidak tersedia.')
+    setIsLoading(true)
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.safablon.my.id'
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${siteUrl}/auth/callback`,
+        },
+      })
+
+      if (error) throw error
+    } catch (error: any) {
+      console.error('Error Google Login:', error)
+      throw new Error(error.message || 'Gagal terhubung ke Google Login.')
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   const logout = useCallback(async () => {
