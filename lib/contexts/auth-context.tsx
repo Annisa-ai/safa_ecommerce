@@ -88,6 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let isMounted = true
+
     try {
       localStorage.removeItem(LEGACY_SESSION_KEY)
       const isAdminRoute = window.location.pathname.startsWith('/admin')
@@ -95,22 +97,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
         const parsed: AuthSession = JSON.parse(saved)
-        if (!isAdminRoute && parsed.isAdmin) return
-        setSession(parsed)
-        if (parsed.isAdmin) {
-          writeSessionCookie({
-            isLoggedIn: parsed.isLoggedIn,
-            isAdmin: parsed.isAdmin,
-            role: parsed.user?.role ?? 'customer',
-          })
+        if (isMounted && (isAdminRoute || !parsed.isAdmin)) {
+          setSession(parsed)
         }
       }
     } catch (e) {
       console.error('Gagal restore sesi:', e)
     } finally {
-      setIsLoading(false)
+      if (isMounted) setIsLoading(false)
     }
-  }, [])
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
+      if (event === 'SIGNED_IN' && supabaseSession?.user) {
+        setIsLoading(true)
+        const gUser = supabaseSession.user
+        const gEmail = gUser.email?.trim().toLowerCase()
+
+        if (gEmail) {
+          try {
+            let { data: userData, error: dbError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', gEmail)
+              .maybeSingle()
+
+            if (!userData && !dbError) {
+              const { data: newUser, error: insertError } = await supabase
+                .from('users')
+                .insert([{
+                  email: gEmail,
+                  full_name: gUser.user_metadata?.full_name || gUser.user_metadata?.name || 'User Google',
+                  role: 'customer',
+                  status: 'active',
+                }])
+                .select()
+                .single()
+              
+              if (!insertError) userData = newUser
+            }
+
+            if (userData && userData.status === 'active') {
+              const mappedUser = mapDbUser(userData)
+              const newSession: AuthSession = {
+                user: mappedUser,
+                isLoggedIn: true,
+                isAdmin: mappedUser.role === 'admin',
+                token: supabaseSession.access_token,
+              }
+              if (isMounted) {
+                persistSession(newSession)
+              }
+            }
+          } catch (err) {
+            console.error('Gagal sinkronisasi user Google:', err)
+          } finally {
+            if (isMounted) setIsLoading(false)
+          }
+        }
+      }
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
+  }, [persistSession])
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true)
@@ -197,12 +248,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = useCallback(async () => {
     setIsLoading(true)
     try {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.safablon.my.id'
+      const originUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.safablon.my.id'
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${siteUrl}/auth/callback`,
+          redirectTo: `${originUrl}/auth/callback`,
         },
       })
 
@@ -218,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     const wasAdmin = session.isAdmin
     clearSession()
+    await supabase.auth.signOut()
     if (wasAdmin) {
       router.push('/admin/login')
     } else {

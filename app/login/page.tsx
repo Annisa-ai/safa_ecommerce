@@ -86,7 +86,7 @@ export default function LoginPage() {
                   placeholder="nama@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || googleLoading}
                   className="w-full"
                 />
               </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
                     placeholder="Masukkan password Anda"
                     value={formData.password}
                     onChange={handleChange}
-                    disabled={isLoading}
+                    disabled={isLoading || googleLoading}
                     className="w-full pr-10"
                   />
                   <button
@@ -168,12 +168,6 @@ export default function LoginPage() {
                 </Link>
               </p>
             </div>
-
-            {/* <div className="mt-6 p-4 bg-secondary/30 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-2 font-medium">Demo Credentials:</p>
-              <p className="text-xs text-muted-foreground mb-1">Customer: customer@example.com / password123</p>
-              <p className="text-xs text-muted-foreground">Admin: admin@screenstudio.com / admin123</p>
-            </div> */}
           </div>
         </Card>
       </main>
