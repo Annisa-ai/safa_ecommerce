@@ -66,7 +66,8 @@ export async function PUT(req: NextRequest) {
       signature: signature
     }
 
-    const duitkuResponse = await fetch('https://sandbox.duitku.com/webapi/api/merchant/v2/inquiry', {
+    // FIX ENDPOINT RESMI DUITKU V2 SANDBOX
+    const duitkuResponse = await fetch('https://sandbox.duitku.com/passport/v2/merchant/invoice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(duitkuPayload),
@@ -75,6 +76,7 @@ export async function PUT(req: NextRequest) {
     const duitkuData = await duitkuResponse.json()
 
     if (!duitkuData.paymentUrl) {
+      console.error('[DUITKU_REJECTION]', duitkuData)
       return NextResponse.json({ error: 'Gagal membuat invoice di Duitku', details: duitkuData }, { status: 500 })
     }
 

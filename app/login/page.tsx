@@ -156,7 +156,7 @@ export default function LoginPage() {
                     fill="#EA4335"
                   />
                 </svg>
-                {googleLoading ? 'Menghubungkan...' : 'Masuk dengan Google'}
+                {/* {googleLoading ? 'Menghubungkan...' : 'Masuk dengan Google'} */}
               </Button>
             </div>
 
