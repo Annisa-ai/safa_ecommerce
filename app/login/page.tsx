@@ -131,7 +131,7 @@ export default function LoginPage() {
                 <div className="flex-1 border-t border-border" />
               </div>
 
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 onClick={handleGoogleLogin}
@@ -157,7 +157,7 @@ export default function LoginPage() {
                   />
                 </svg>
                 {/* {googleLoading ? 'Menghubungkan...' : 'Masuk dengan Google'} */}
-              </Button>
+              {/* </Button> */} */
             </div>
 
             <div className="mt-6 pt-6 border-t border-border">
