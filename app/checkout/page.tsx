@@ -81,7 +81,6 @@ export default function CheckoutPage() {
     ? true
     : Object.values(manualAddress).every(v => v !== '')
 
-  const [paymentMethod, setPaymentMethod] = useState('duitku')
   const [midtransSnapToken, setMidtransSnapToken] = useState<string | null>(null)
   const [midtransTransactionId, setMidtransTransactionId] = useState<string | null>(null)
   const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
@@ -137,6 +136,12 @@ export default function CheckoutPage() {
     }
   }
 
+  const midtransSnapUrl =
+    process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL ||
+    (process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
+      ? 'https://app.midtrans.com/snap/snap.js'
+      : 'https://app.sandbox.midtrans.com/snap/snap.js')
+
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: 'shipping', label: 'Pengiriman' },
     { key: 'design', label: 'Desain' },
@@ -150,7 +155,7 @@ export default function CheckoutPage() {
     return (
       <>
         <Script
-          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          src={midtransSnapUrl}
           data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
           strategy="afterInteractive"
         />
@@ -167,7 +172,7 @@ export default function CheckoutPage() {
     return (
       <>
         <Script
-          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          src={midtransSnapUrl}
           data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
           strategy="afterInteractive"
         />
@@ -182,11 +187,11 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <Script
-        src="https://app.sandbox.midtrans.com/snap/snap.js"
-        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
-        strategy="afterInteractive"
-      />
+        <Script
+          src={midtransSnapUrl}
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="afterInteractive"
+        />
 
       <Header />
 
