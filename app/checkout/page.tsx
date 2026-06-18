@@ -14,6 +14,7 @@ import { useNotifications, buildOrderNotif, buildAdminNewOrderNotif, buildAdminD
 import { useAddresses, type UserAddress } from '@/lib/contexts/address-context'
 import { Order, Address } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import MidtransPaymentButton from '@/components/checkout/midtrans-payment-button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { DropZone } from '@/components/ui/drop-zone'
@@ -77,6 +78,8 @@ export default function CheckoutPage() {
     : Object.values(manualAddress).every(v => v !== '')
 
   const [paymentMethod, setPaymentMethod] = useState('duitku')
+  const [midtransSnapToken, setMidtransSnapToken] = useState<string | null>(null)
+  const [midtransTransactionId, setMidtransTransactionId] = useState<string | null>(null)
   const [shippingSelection, setShippingSelection] = useState<ShippingSelection | null>(null)
 
   useEffect(() => {
@@ -130,6 +133,126 @@ export default function CheckoutPage() {
 
   const handleRemoveDesign = (itemId: string) => {
     setDesigns(prev => ({ ...prev, [itemId]: { file: null, preview: '', notes: prev[itemId]?.notes || '' } }))
+  }
+
+  const createLocalOrder = (orderNumber: string, targetUserId: string): Order => {
+    return {
+      id: orderNumber,
+      orderNumber,
+      userId: targetUserId,
+      items: cartItems.map(item => ({
+        productId: item.productId,
+        productName: item.product?.name || '',
+        quantity: item.quantity,
+        price: item.product?.price || 0,
+        selectedMethod: item.selectedMethod,
+        customization: {
+          designUrl: designs[item.id]?.preview || item.customization?.designUrl,
+          notes: designs[item.id]?.notes || item.customization?.notes,
+        },
+      })),
+      subtotal,
+      shippingCost: shippingSelection?.cost ?? 0,
+      shippingInfo: shippingSelection ?? undefined,
+      total,
+      status: 'pending',
+      paymentStatus: 'pending',
+      shippingAddress: address,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  }
+
+  const cutLocalStock = () => {
+    cartItems.forEach(item => {
+      const currentStock = (item.product as { stock?: number })?.stock
+      if (currentStock != null) {
+        updateProduct(item.productId, { stock: Math.max(0, currentStock - item.quantity) } as any)
+      }
+    })
+  }
+
+  const sendNotifications = (orderNumber: string, targetUserId: string) => {
+    addNotification(buildOrderNotif(targetUserId, orderNumber, orderNumber))
+    addNotification(buildAdminNewOrderNotif(orderNumber, orderNumber, address.name))
+    const hasDesign = cartItems.some(item => designs[item.id]?.file)
+    if (hasDesign) {
+      addNotification(buildAdminDesignNotif(orderNumber, orderNumber))
+    }
+  }
+
+  const handleMidtransPlaceOrder = async () => {
+    if (!isAddressComplete) {
+      alert('Mohon lengkapi semua data pengiriman')
+      return
+    }
+    if (!shippingSelection) {
+      alert('Mohon pilih layanan kurir pengiriman')
+      return
+    }
+    if (hasOutOfStock) {
+      alert('Beberapa produk sudah habis stok. Hapus dari keranjang terlebih dahulu.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const orderNumber = `ORD-${Date.now()}`
+      const targetUserId = userId || `user-${Date.now()}`
+
+      // 1. Create transaction via Midtrans API
+      //    Kirim data lengkap agar server bisa INSERT order ke database dulu
+      const response = await fetch('/api/midtrans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: orderNumber,
+          orderNumber,
+          finalPrice: total,
+          customerEmail: user?.email || address.email || 'customer@safasablon.com',
+          customerName: address.name,
+          customerPhone: address.phone,
+          userId: targetUserId,
+          subtotal,
+          shippingCost: shippingSelection.cost,
+          shippingAddress: address,
+          items: cartItems.map(item => ({
+            productId: item.productId,
+            productName: item.product?.name || '',
+            quantity: item.quantity,
+            price: item.product?.price || 0,
+            selectedMethod: item.selectedMethod,
+            customization: {
+              designUrl: designs[item.id]?.preview || item.customization?.designUrl,
+              notes: designs[item.id]?.notes || item.customization?.notes,
+            },
+          })),
+        }),
+      })
+
+      const midtransData = await response.json()
+
+      if (!response.ok || !midtransData.snapToken) {
+        throw new Error(midtransData.error || 'Gagal membuat transaksi Midtrans')
+      }
+
+      // 2. Save snap token to state for the payment button
+      setMidtransSnapToken(midtransData.snapToken)
+      setMidtransTransactionId(midtransData.transactionId || orderNumber)
+
+      // 3. Create local order (in-memory state for UI reactivity)
+      const newOrder = createLocalOrder(orderNumber, targetUserId)
+      cutLocalStock()
+      addOrder(newOrder)
+      sendNotifications(orderNumber, targetUserId)
+      clearCart()
+
+    } catch (error: any) {
+      console.error(error)
+      alert(error.message || 'Gagal membuat pesanan. Silakan coba lagi.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePlaceOrder = async () => {
@@ -488,14 +611,35 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('duitku')}
-                      className="w-full p-5 border-2 rounded-xl transition text-left border-primary bg-primary/5"
+                      className={`w-full p-5 border-2 rounded-xl transition text-left ${
+                        paymentMethod === 'duitku' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                      }`}
                     >
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-semibold text-foreground">Duitku Payment Gateway</p>
                           <p className="text-xs text-muted-foreground mt-0.5">Dukung Virtual Account, QRIS, E-Wallet, dan Kartu Kredit secara real-time</p>
                         </div>
-                        <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded">Otomatis</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                          paymentMethod === 'duitku' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        }`}>Otomatis</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('midtrans')}
+                      className={`w-full p-5 border-2 rounded-xl transition text-left ${
+                        paymentMethod === 'midtrans' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-foreground">Midtrans Snap (Pop-up)</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Dukung Virtual Account, QRIS, E-Wallet, Kartu Kredit, dan Convenience Store via pop-up</p>
+                        </div>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                          paymentMethod === 'midtrans' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        }`}>Pop-up</span>
                       </div>
                     </button>
                   </div>
@@ -531,13 +675,46 @@ export default function CheckoutPage() {
                     </div>
                     <div className="border-t border-border pt-4">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">Pembayaran</p>
-                      <p className="text-sm text-foreground/80">Gateway Otomatis (Duitku)</p>
+                      {paymentMethod === 'midtrans' ? (
+                        <p className="text-sm text-foreground/80">
+                          Midtrans Snap
+                          {midtransSnapToken && (
+                            <span className="text-xs text-muted-foreground ml-2">(Siap dibayar)</span>
+                          )}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-foreground/80">Gateway Otomatis (Duitku)</p>
+                      )}
                     </div>
-                    <div className="flex gap-4 pt-2">
-                      <Button variant="outline" onClick={() => setStep('payment')} className="flex-1">Kembali</Button>
-                      <Button onClick={handlePlaceOrder} disabled={loading || hasOutOfStock} className="flex-1">
-                        {loading ? 'Memproses Gateway...' : 'Bayar Sekarang'}
-                      </Button>
+                    <div className="border-t border-border pt-4">
+                      <div className="flex gap-4 pt-2">
+                        <Button variant="outline" onClick={() => setStep('payment')} className="flex-1">Kembali</Button>
+                        {paymentMethod === 'midtrans' ? (
+                          midtransSnapToken ? (
+                            <div className="flex-1">
+                              <MidtransPaymentButton
+                                snapToken={midtransSnapToken}
+                                amount={total}
+                                onSuccess={() => router.push('/checkout/success?order_id=' + encodeURIComponent(midtransTransactionId || ''))}
+                                onError={(err) => alert('Pembayaran gagal: ' + err)}
+                                onClose={() => {/* User closed popup */ }}
+                              />
+                            </div>
+                          ) : (
+                            <Button
+                              onClick={handleMidtransPlaceOrder}
+                              disabled={loading || hasOutOfStock}
+                              className="flex-1"
+                            >
+                              {loading ? 'Memproses Midtrans...' : 'Bayar dengan Midtrans'}
+                            </Button>
+                          )
+                        ) : (
+                          <Button onClick={handlePlaceOrder} disabled={loading || hasOutOfStock} className="flex-1">
+                            {loading ? 'Memproses Gateway...' : 'Bayar Sekarang'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Card>
