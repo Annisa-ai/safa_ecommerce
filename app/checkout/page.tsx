@@ -135,6 +135,34 @@ export default function CheckoutPage() {
     setDesigns(prev => ({ ...prev, [itemId]: { file: null, preview: '', notes: prev[itemId]?.notes || '' } }))
   }
 
+  const createLocalOrder = (orderNumber: string, targetUserId: string): Order => {
+    return {
+      id: orderNumber,
+      orderNumber,
+      userId: targetUserId,
+      items: cartItems.map(item => ({
+        productId: item.productId,
+        productName: item.product?.name || '',
+        quantity: item.quantity,
+        price: item.product?.price || 0,
+        selectedMethod: item.selectedMethod,
+        customization: {
+          designUrl: designs[item.id]?.preview || item.customization?.designUrl,
+          notes: designs[item.id]?.notes || item.customization?.notes,
+        },
+      })),
+      subtotal,
+      shippingCost: shippingSelection?.cost ?? 0,
+      shippingInfo: shippingSelection ?? undefined,
+      total,
+      status: 'pending',
+      paymentStatus: 'pending',
+      shippingAddress: address,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  }
+
   const cutLocalStock = () => {
     cartItems.forEach(item => {
       const currentStock = (item.product as { stock?: number })?.stock
@@ -173,11 +201,7 @@ export default function CheckoutPage() {
       const targetUserId = userId || `user-${Date.now()}`
 
       // 1. Create transaction via Midtrans API
-      //    Kirim data lengkap agar server bisa INSERT order ke database dulu.
-      //    Order INI yang menjadi satu-satunya sumber kebenaran (single source of
-      //    truth) untuk status pesanan. Setelah ini, frontend TIDAK membuat order
-      //    baru lagi di local state — hanya menunggu webhook Midtrans meng-update
-      //    baris yang sama di database (lihat handleMidtransSuccess/Pending di bawah).
+      //    Kirim data lengkap agar server bisa INSERT order ke database dulu
       const response = await fetch('/api/midtrans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -224,33 +248,16 @@ export default function CheckoutPage() {
     }
   }
 
-  // Dipanggil Snap.js saat status transaksi langsung "capture/settlement"
-  // (mis. kartu kredit tanpa langkah tambahan). Order SUDAH ada di database
-  // (dibuat di handleMidtransPlaceOrder), jadi di sini kita TIDAK addOrder lagi.
-  // Status final (paid/processing) tetap dikonfirmasi oleh webhook backend
-  // (/api/midtrans/callback), bukan oleh event ini — event ini hanya dipakai
-  // untuk feedback & redirect di sisi UI.
   const handleMidtransSuccess = useCallback(() => {
-    const orderNumber = midtransTransactionId
+    const orderNumber = midtransTransactionId || `ORD-${Date.now()}`
+    const targetUserId = userId || `user-${Date.now()}`
+    const newOrder = createLocalOrder(orderNumber, targetUserId)
     cutLocalStock()
-    if (orderNumber) {
-      sendNotifications(orderNumber, userId || `user-${Date.now()}`)
-    }
+    addOrder(newOrder)
+    sendNotifications(orderNumber, targetUserId)
     clearCart()
-    router.push('/checkout/success?order_id=' + encodeURIComponent(orderNumber || ''))
-  }, [midtransTransactionId, userId, cartItems, designs, address, cutLocalStock, sendNotifications, clearCart, router])
-
-  // Dipanggil Snap.js saat status transaksi masih "pending" di sisi Midtrans
-  // (VA, QRIS, e-wallet, dll — user masih harus menyelesaikan pembayaran di luar
-  // popup). INI BUKAN pembayaran berhasil. Jangan tandai order sebagai paid di
-  // sini. Arahkan user ke halaman status pesanan supaya dia bisa pantau, dan
-  // biarkan webhook backend yang nanti meng-update status jadi "processing"
-  // begitu pembayaran benar-benar settlement.
-  const handleMidtransPending = useCallback(() => {
-    const orderNumber = midtransTransactionId
-    clearCart()
-    router.push('/checkout/pending?order_id=' + encodeURIComponent(orderNumber || ''))
-  }, [midtransTransactionId, clearCart, router])
+    router.push('/checkout/success?order_id=' + encodeURIComponent(orderNumber))
+  }, [midtransTransactionId, userId, cartItems, designs, subtotal, shippingSelection, total, address, products, updateProduct, addOrder, clearCart, addNotification, router])
 
   const midtransSnapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL ||
     (process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
@@ -577,7 +584,6 @@ export default function CheckoutPage() {
                               snapToken={midtransSnapToken}
                               amount={total}
                               onSuccess={handleMidtransSuccess}
-                              onPending={handleMidtransPending}
                               onError={(err) => alert('Pembayaran gagal: ' + err)}
                               onClose={() => {/* User closed popup */ }}
                             />

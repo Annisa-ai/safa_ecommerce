@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -10,10 +11,6 @@ interface Props {
   disabled?: boolean
   loading?: boolean
   onSuccess?: () => void
-  // Dipanggil saat Midtrans mengembalikan status "pending" (mis. VA/QRIS/e-wallet
-  // yang menunggu user menyelesaikan pembayaran di luar popup).
-  // INI BUKAN "pembayaran berhasil" — jangan dipakai untuk update status order jadi paid.
-  onPending?: () => void
   onError?: (error: string) => void
   onClose?: () => void
 }
@@ -24,7 +21,6 @@ export default function MidtransPaymentButton({
   disabled = false,
   loading: externalLoading = false,
   onSuccess,
-  onPending,
   onError,
   onClose,
 }: Props) {
@@ -79,18 +75,13 @@ export default function MidtransPaymentButton({
     setSnapError(null)
 
     window.snap.pay(snapToken, {
-      // Status transaksi capture/settlement langsung (mis. kartu kredit tanpa 3DS
-      // tambahan). Status final TETAP harus dikonfirmasi oleh webhook backend,
-      // tapi UI boleh memberi feedback awal di sini.
       onSuccess: () => {
         setSnapLoading(false)
         onSuccess?.()
       },
-      // Status transaksi masih "pending" di sisi Midtrans (VA/QRIS/e-wallet yang
-      // menunggu pembayaran diselesaikan user). BUKAN pembayaran berhasil.
       onPending: () => {
         setSnapLoading(false)
-        onPending?.()
+        onSuccess?.()
       },
       onError: (result: any) => {
         setSnapLoading(false)
@@ -102,7 +93,7 @@ export default function MidtransPaymentButton({
         onClose?.()
       },
     })
-  }, [snapToken, onSuccess, onPending, onError, onClose])
+  }, [snapToken, onSuccess, onError, onClose])
 
   const isLoading = externalLoading || snapLoading
   const isDisabled = disabled || isLoading || !snapToken
@@ -127,3 +118,4 @@ export default function MidtransPaymentButton({
     </div>
   )
 }
+
