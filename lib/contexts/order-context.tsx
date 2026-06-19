@@ -14,39 +14,51 @@ interface OrderContextType {
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined)
 
+// ── Helper: map raw Supabase row → Order ─────────────────────────────────────
+function mapRowToOrder(item: any): Order {
+  return {
+    id: String(item.id),
+    orderNumber: item.order_number || item.orderNumber || '',
+    userId: String(item.user_id || item.userId || ''),
+    status: item.status,
+    total: Number(item.final_price ?? item.total ?? 0),
+    paymentStatus: item.payment_status || 'pending',
+    subtotal: Number(item.total_price ?? 0),
+    shippingCost: Number(item.shipping_cost ?? 0),
+    shippingInfo: item.shipping_info ?? undefined,
+    notes: item.notes ?? undefined,
+    createdAt: new Date(item.created_at || item.createdAt),
+    updatedAt: new Date(item.updated_at || item.created_at || Date.now()),
+    shippingAddress:
+      typeof item.shipping_address === 'string'
+        ? JSON.parse(item.shipping_address)
+        : item.shipping_address || item.shippingAddress || {},
+    items: (item.order_items || []).map((it: any) => ({
+      productId: String(it.product_id ?? ''),
+      productName: it.product_name ?? '',
+      quantity: Number(it.quantity ?? 1),
+      price: Number(it.unit_price ?? 0),
+      selectedMethod: it.selected_method ?? 'sablon',
+      customization: it.customization ?? undefined,
+    })),
+  }
+}
+
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // 1. Fetch data pesanan langsung dari Database Supabase saat pertama kali load
   useEffect(() => {
     async function fetchOrders() {
       try {
         setIsLoading(true)
         const { data, error } = await supabase
           .from('orders')
-          .select('*')
+          .select('*, order_items(*)')
           .order('created_at', { ascending: false })
 
         if (error) throw error
-
-        if (data) {
-          // Menggunakan ...item agar properti wajib seperti items, paymentStatus, dll tetap terbawa
-          const mappedOrders: Order[] = data.map((item: any) => ({
-            ...item,
-            id: item.id,
-            orderNumber: item.order_number || item.orderNumber,
-            userId: item.user_id || item.userId,
-            status: item.status,
-            total: item.total,
-            createdAt: item.created_at || item.createdAt,
-            shippingAddress: typeof item.shipping_address === 'string' 
-              ? JSON.parse(item.shipping_address) 
-              : (item.shipping_address || item.shippingAddress || {})
-          }))
-          
-          setOrders(mappedOrders)
-        }
+        if (data) setOrders(data.map(mapRowToOrder))
       } catch (e) {
         console.error('Gagal mengambil data orders dari Supabase:', e)
       } finally {
@@ -57,74 +69,60 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     fetchOrders()
   }, [])
 
-  // 2. Pasang Listener Realtime secara global di sini agar state orders sinkron otomatis dari Duitku Webhook
   useEffect(() => {
     const channel = supabase
       .channel('global-orders-realtime')
       .on(
         'postgres_changes',
-        {
-          event: '*', // Mendengarkan INSERT dan UPDATE
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload: any) => {
+        { event: '*', schema: 'public', table: 'orders' },
+        async (payload: any) => {
           console.log('Realtime DB Update dideteksi di Context:', payload)
 
           if (payload.eventType === 'INSERT') {
-            const newItem = payload.new
-            // Menggunakan ...newItem agar valid sesuai kontrak interface Order lu
-            const mappedNewOrder: Order = {
-              ...newItem,
-              id: newItem.id,
-              orderNumber: newItem.order_number || newItem.orderNumber,
-              userId: newItem.user_id || newItem.userId,
-              status: newItem.status,
-              total: newItem.total,
-              createdAt: newItem.created_at || newItem.createdAt,
-              shippingAddress: typeof newItem.shipping_address === 'string'
-                ? JSON.parse(newItem.shipping_address)
-                : (newItem.shipping_address || newItem.shippingAddress || {})
+            const { data: newOrderData, error } = await supabase
+              .from('orders')
+              .select('*, order_items(*)')
+              .eq('id', payload.new.id)
+              .single()
+
+            if (error) {
+              console.error('Gagal fetch order baru setelah INSERT:', error)
+              return
             }
-            setOrders(prev => [mappedNewOrder, ...prev])
-          } 
-          
+            if (newOrderData) {
+              setOrders(prev => [mapRowToOrder(newOrderData), ...prev])
+            }
+          }
+
           else if (payload.eventType === 'UPDATE') {
             const updatedItem = payload.new
-            setOrders(prev => prev.map(order => 
-              order.id === updatedItem.id 
-                ? { 
-                    ...order, 
-                    ...updatedItem, // Ambil semua field baru dari DB update
-                    status: updatedItem.status,
-                    payment_status: updatedItem.payment_status,
-                    updatedAt: new Date(updatedItem.updated_at || Date.now())
-                  } 
-                : order
-            ))
+            setOrders(prev =>
+              prev.map(order =>
+                order.id === updatedItem.id
+                  ? {
+                      ...order,
+                      status: updatedItem.status,
+                      paymentStatus: updatedItem.payment_status || order.paymentStatus,
+                      total: Number(updatedItem.final_price ?? updatedItem.total ?? order.total),
+                      updatedAt: new Date(updatedItem.updated_at || Date.now()),
+                    }
+                  : order
+              )
+            )
           }
         }
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
-  const addOrder = (order: Order) => {
-    setOrders(prev => [order, ...prev])
-  }
+  const addOrder = (order: Order) => setOrders(prev => [order, ...prev])
 
-  const updateOrder = (id: string, updates: Partial<Order>) => {
-    setOrders(prev => prev.map(order =>
-      order.id === id ? { ...order, ...updates } : order
-    ))
-  }
+  const updateOrder = (id: string, updates: Partial<Order>) =>
+    setOrders(prev => prev.map(order => (order.id === id ? { ...order, ...updates } : order)))
 
-  const getOrderById = (id: string) => {
-    return orders.find(order => order.id === id)
-  }
+  const getOrderById = (id: string) => orders.find(order => order.id === id)
 
   return (
     <OrderContext.Provider value={{ orders, addOrder, updateOrder, getOrderById, isLoading }}>
@@ -135,8 +133,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
 export function useOrders() {
   const context = useContext(OrderContext)
-  if (!context) {
-    throw new Error('useOrders must be used within OrderProvider')
-  }
+  if (!context) throw new Error('useOrders must be used within OrderProvider')
   return context
 }

@@ -13,28 +13,28 @@ import {
 } from '@/components/admin/ui'
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; bar: string }> = {
-  pending: { label: 'Menunggu', bg: 'bg-amber-50', text: 'text-amber-800', bar: 'bg-amber-500' },
-  processing: { label: 'Diproses', bg: 'bg-sky-50', text: 'text-sky-800', bar: 'bg-sky-500' },
-  ready: { label: 'Siap', bg: 'bg-violet-50', text: 'text-violet-800', bar: 'bg-violet-500' },
-  shipped: { label: 'Dikirim', bg: 'bg-cyan-50', text: 'text-cyan-800', bar: 'bg-cyan-500' },
-  delivered: { label: 'Selesai', bg: 'bg-emerald-50', text: 'text-emerald-800', bar: 'bg-emerald-500' },
-  cancelled: { label: 'Batal', bg: 'bg-rose-50', text: 'text-rose-800', bar: 'bg-rose-500' },
+  pending:    { label: 'Menunggu', bg: 'bg-amber-50',   text: 'text-amber-800',   bar: 'bg-amber-500' },
+  processing: { label: 'Diproses', bg: 'bg-sky-50',     text: 'text-sky-800',     bar: 'bg-sky-500' },
+  ready:      { label: 'Siap',     bg: 'bg-violet-50',  text: 'text-violet-800',  bar: 'bg-violet-500' },
+  shipped:    { label: 'Dikirim',  bg: 'bg-cyan-50',    text: 'text-cyan-800',    bar: 'bg-cyan-500' },
+  delivered:  { label: 'Selesai',  bg: 'bg-emerald-50', text: 'text-emerald-800', bar: 'bg-emerald-500' },
+  cancelled:  { label: 'Batal',    bg: 'bg-rose-50',    text: 'text-rose-800',    bar: 'bg-rose-500' },
 }
 
 function formatRpShort(n: number) {
   if (n >= 1_000_000) return `Rp${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `Rp${(n / 1_000).toFixed(0)}K`
+  if (n >= 1_000)     return `Rp${(n / 1_000).toFixed(0)}K`
   return `Rp${n.toLocaleString('id-ID')}`
 }
 
 export default function AdminDashboard() {
   const { orders } = useOrders()
-  const { user } = useAuth()
+  const { user }   = useAuth()
 
-  const totalOrders = orders.length
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
+  const totalOrders    = orders.length
+  const totalRevenue   = orders.reduce((sum, order) => sum + order.total, 0)
   const totalCustomers = new Set(orders.map(order => order.userId)).size
-  const activeOrders = orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length
+  const activeOrders   = orders.filter(order => !['delivered', 'cancelled'].includes(order.status)).length
 
   const statusCounts = useMemo(() => {
     return orders.reduce<Record<string, number>>((map, order) => {
@@ -54,11 +54,13 @@ export default function AdminDashboard() {
     orders
       .filter(order => order.status !== 'cancelled')
       .forEach(order => {
-        order.items.forEach(item => {
+        // FIX: guard items dengan fallback [] agar tidak crash
+        const safeItems = order.items ?? []
+        safeItems.forEach(item => {
           if (!map[item.productId]) {
             map[item.productId] = { name: item.productName, qty: 0, revenue: 0 }
           }
-          map[item.productId].qty += item.quantity
+          map[item.productId].qty     += item.quantity
           map[item.productId].revenue += item.price * item.quantity
         })
       })
@@ -66,10 +68,7 @@ export default function AdminDashboard() {
   }, [orders])
 
   const today = new Date().toLocaleDateString('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
   return (
@@ -91,10 +90,10 @@ export default function AdminDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AdminStatTile label="Total Pesanan" value={totalOrders} hint="Sepanjang waktu" />
-        <AdminStatTile label="Pesanan Aktif" value={activeOrders} hint="Belum selesai" tone="orange" />
-        <AdminStatTile label="Pendapatan" value={formatRpShort(totalRevenue)} hint="Semua transaksi" tone="green" />
-        <AdminStatTile label="Pelanggan" value={totalCustomers} hint="Akun unik" tone="blue" />
+        <AdminStatTile label="Total Pesanan"  value={totalOrders}                 hint="Sepanjang waktu" />
+        <AdminStatTile label="Pesanan Aktif"  value={activeOrders}                hint="Belum selesai"   tone="orange" />
+        <AdminStatTile label="Pendapatan"     value={formatRpShort(totalRevenue)} hint="Semua transaksi" tone="green" />
+        <AdminStatTile label="Pelanggan"      value={totalCustomers}              hint="Akun unik"       tone="blue" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-6">
@@ -103,14 +102,10 @@ export default function AdminDashboard() {
           <div className="space-y-3.5 p-4 sm:space-y-4 sm:p-5">
             {['pending', 'processing', 'ready', 'shipped', 'delivered'].map(status => {
               const count = statusCounts[status] ?? 0
-              const pct = totalOrders > 0 ? (count / totalOrders) * 100 : 0
-              const cfg = STATUS_CONFIG[status]
-
+              const pct   = totalOrders > 0 ? (count / totalOrders) * 100 : 0
+              const cfg   = STATUS_CONFIG[status]
               return (
-                <div
-                  key={status}
-                  className="grid grid-cols-[64px_minmax(0,1fr)_32px] items-center gap-2.5 sm:grid-cols-[88px_minmax(0,1fr)_36px] sm:gap-3"
-                >
+                <div key={status} className="grid grid-cols-[64px_minmax(0,1fr)_32px] items-center gap-2.5 sm:grid-cols-[88px_minmax(0,1fr)_36px] sm:gap-3">
                   <span className="truncate text-xs font-medium text-slate-600 sm:text-sm">{cfg.label}</span>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${pct}%` }} />
@@ -126,9 +121,9 @@ export default function AdminDashboard() {
           <AdminPanelHeader title="Akses Cepat" description="Aksi yang paling sering dipakai." />
           <div className="space-y-2 p-3.5 sm:p-4">
             {[
-              { href: '/admin/products', label: 'Tambah Produk' },
-              { href: '/admin/orders', label: 'Lihat Pesanan' },
-              { href: '/admin/reviews', label: 'Kelola Ulasan' },
+              { href: '/admin/products',  label: 'Tambah Produk' },
+              { href: '/admin/orders',    label: 'Lihat Pesanan' },
+              { href: '/admin/reviews',   label: 'Kelola Ulasan' },
               { href: '/admin/analytics', label: 'Lihat Laporan' },
             ].map(item => (
               <Link
@@ -153,12 +148,8 @@ export default function AdminDashboard() {
             {topProducts.map((product, index) => {
               const maxRevenue = topProducts[0].revenue
               const pct = maxRevenue > 0 ? (product.revenue / maxRevenue) * 100 : 0
-
               return (
-                <div
-                  key={product.name}
-                  className="grid grid-cols-[20px_minmax(0,1fr)_72px] items-center gap-2.5 sm:grid-cols-[24px_minmax(0,1fr)_96px] sm:gap-3"
-                >
+                <div key={product.name} className="grid grid-cols-[20px_minmax(0,1fr)_72px] items-center gap-2.5 sm:grid-cols-[24px_minmax(0,1fr)_96px] sm:gap-3">
                   <span className="text-right text-xs font-black text-slate-400">{index + 1}</span>
                   <div className="min-w-0">
                     <div className="mb-1 flex items-center justify-between gap-2.5">
@@ -200,10 +191,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
                   {['Nomor Pesanan', 'Pelanggan', 'Total', 'Status', 'Tanggal'].map(header => (
-                    <th
-                      key={header}
-                      className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.08em] text-slate-500 sm:px-5"
-                    >
+                    <th key={header} className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-black uppercase tracking-[0.08em] text-slate-500 sm:px-5">
                       {header}
                     </th>
                   ))}
@@ -212,12 +200,8 @@ export default function AdminDashboard() {
               <tbody>
                 {recentOrders.map(order => {
                   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
-
                   return (
-                    <tr
-                      key={order.id}
-                      className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50"
-                    >
+                    <tr key={order.id} className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50">
                       <td className="whitespace-nowrap px-4 py-3.5 font-mono text-sm font-bold text-slate-950 sm:px-5 sm:py-4">
                         {order.orderNumber}
                       </td>
@@ -228,18 +212,12 @@ export default function AdminDashboard() {
                         Rp{order.total.toLocaleString('id-ID')}
                       </td>
                       <td className="px-4 py-3.5 sm:px-5 sm:py-4">
-                        <span
-                          className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.text}`}
-                        >
+                        <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.text}`}>
                           {cfg.label}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5 text-sm text-slate-500 sm:px-5 sm:py-4">
-                        {new Date(order.createdAt).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                        {new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
                     </tr>
                   )

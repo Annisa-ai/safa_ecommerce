@@ -13,21 +13,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Order } from '@/lib/types'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 const ORDER_STATUS: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  pending:     { label: 'Menunggu Pembayaran', bg: '#fffbeb', text: '#92400e', dot: '#f59e0b' },
-  processing: { label: 'Diproses',           bg: '#eff6ff', text: '#1d4ed8', dot: '#3b82f6' },
-  ready:       { label: 'Siap Dikirim',          bg: '#faf5ff', text: '#6b21a8', dot: '#a855f7' },
-  shipped:     { label: 'Dikirim',              bg: '#ecfeff', text: '#155e75', dot: '#06b6d4' },
-  delivered:  { label: 'Selesai',              bg: '#f0fdf4', text: '#14532d', dot: '#22c55e' },
-  cancelled:  { label: 'Dibatalkan',           bg: '#fff1f2', text: '#9f1239', dot: '#f43f5e' },
+  pending:    { label: 'Menunggu Pembayaran', bg: '#fffbeb', text: '#92400e', dot: '#f59e0b' },
+  processing: { label: 'Diproses',            bg: '#eff6ff', text: '#1d4ed8', dot: '#3b82f6' },
+  ready:      { label: 'Siap Dikirim',        bg: '#faf5ff', text: '#6b21a8', dot: '#a855f7' },
+  shipped:    { label: 'Dikirim',             bg: '#ecfeff', text: '#155e75', dot: '#06b6d4' },
+  delivered:  { label: 'Selesai',             bg: '#f0fdf4', text: '#14532d', dot: '#22c55e' },
+  cancelled:  { label: 'Dibatalkan',          bg: '#fff1f2', text: '#9f1239', dot: '#f43f5e' },
 }
 
 const PAY_STATUS: Record<string, { label: string; bg: string; text: string }> = {
   pending: { label: 'Belum Dibayar', bg: '#fffbeb', text: '#92400e' },
-  paid:    { label: 'Lunas',          bg: '#f0fdf4', text: '#14532d' },
-  failed:  { label: 'Gagal',          bg: '#fff1f2', text: '#9f1239' },
+  paid:    { label: 'Lunas',         bg: '#f0fdf4', text: '#14532d' },
+  failed:  { label: 'Gagal',         bg: '#fff1f2', text: '#9f1239' },
 }
 
 const TIMELINE = [
@@ -49,8 +47,6 @@ function getActiveStep(status: string, payStatus: string): number {
   return 1
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function Chip({ label, bg, text }: { label: string; bg: string; text: string }) {
   return (
     <span style={{
@@ -63,14 +59,11 @@ function Chip({ label, bg, text }: { label: string; bg: string; text: string }) 
   )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
       fontSize: 11, fontWeight: 700, color: '#9ca3af',
-      textTransform: 'uppercase', letterSpacing: '0.08em',
-      marginBottom: 12,
+      textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12,
     }}>
       {children}
     </p>
@@ -90,30 +83,20 @@ function InfoGrid({ items }: { items: { label: string; value: React.ReactNode }[
   )
 }
 
-// ── Order Detail Panel ────────────────────────────────────────────────────────
-
 function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) {
   const os = ORDER_STATUS[order.status]
   const ps = PAY_STATUS[order.paymentStatus]
   const activeStep = order.status === 'cancelled' ? -1 : getActiveStep(order.status, order.paymentStatus)
+  const safeItems = order.items ?? []
 
   return (
     <div style={{
-      backgroundColor: '#fff',
-      border: '1.5px solid #e5e7eb',
-      borderRadius: 16,
-      overflow: 'hidden',
-      marginBottom: 12,
-      boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+      backgroundColor: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 16,
+      overflow: 'hidden', marginBottom: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
     }}>
-      {/* ── Detail Header ── */}
       <div style={{
-        display: 'flex', 
-        alignItems: 'center', 
-        padding: '14px 20px', 
-        backgroundColor: '#f8fafc',
-        borderBottom: '1px solid #e5e7eb',
-        justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', padding: '14px 20px',
+        backgroundColor: '#f8fafc', borderBottom: '1px solid #e5e7eb', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
@@ -139,12 +122,11 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
 
       <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-        {/* ── 1. Timeline ── */}
+        {/* Timeline */}
         {order.status === 'cancelled' ? (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: '16px 20px', backgroundColor: '#fff1f2',
-            border: '1px solid #fecdd3', borderRadius: 12,
+            display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
+            backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 12,
           }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>❌</div>
             <div>
@@ -162,7 +144,6 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
                 const last = i === TIMELINE.length - 1
                 return (
                   <div key={step.key} style={{ display: 'flex', gap: 16 }}>
-                    {/* Dot + line */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
                       <div style={{
                         width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
@@ -182,7 +163,6 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
                         <div style={{ width: 2, flexGrow: 1, minHeight: 20, backgroundColor: done ? '#1e3a5f' : '#e2e8f0', margin: '3px 0' }} />
                       )}
                     </div>
-                    {/* Text */}
                     <div style={{ paddingBottom: last ? 0 : 20, paddingTop: 1 }}>
                       <p style={{
                         fontSize: 13, lineHeight: 1.4,
@@ -191,9 +171,7 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
                       }}>
                         {step.label}
                       </p>
-                      {active && (
-                        <p style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Sedang berlangsung</p>
-                      )}
+                      {active && <p style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Sedang berlangsung</p>}
                     </div>
                   </div>
                 )
@@ -202,83 +180,88 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
           </div>
         )}
 
-        {/* ── 2. Informasi Pesanan ── */}
+        {/* Informasi Pesanan */}
         <div>
           <SectionTitle>Informasi Pesanan</SectionTitle>
           <InfoGrid items={[
-            { label: 'Nomor Pesanan', value: <span style={{ fontFamily: 'monospace' }}>{order.orderNumber}</span> },
-            { label: 'Tanggal Pesanan', value: new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) },
-            { label: 'Status Pesanan', value: os ? <Chip label={os.label} bg={os.bg} text={os.text} /> : order.status },
+            { label: 'Nomor Pesanan',     value: <span style={{ fontFamily: 'monospace' }}>{order.orderNumber}</span> },
+            { label: 'Tanggal Pesanan',   value: new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) },
+            { label: 'Status Pesanan',    value: os ? <Chip label={os.label} bg={os.bg} text={os.text} /> : order.status },
             { label: 'Status Pembayaran', value: ps ? <Chip label={ps.label} bg={ps.bg} text={ps.text} /> : order.paymentStatus },
           ]} />
         </div>
 
-        {/* ── 3. Produk ── */}
+        {/* Detail Produk */}
         <div>
           <SectionTitle>Detail Produk</SectionTitle>
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-            {order.items.map((item, i) => (
-              <div key={i} style={{
-                padding: '14px 16px',
-                borderBottom: i < order.items.length - 1 ? '1px solid #f1f5f9' : 'none',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{item.productName}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', rowGap: 4, columnGap: 16, fontSize: 12, color: '#64748b' }}>
-                    <span>Jenis: <b style={{ color: '#334155' }}>{item.selectedMethod}</b></span>
-                    <span>Qty: <b style={{ color: '#334155' }}>{item.quantity} pcs</b></span>
-                    <span>Harga: <b style={{ color: '#334155' }}>Rp{item.price.toLocaleString('id-ID')}/pcs</b></span>
-                  </div>
-                  {item.customization?.notes && (
-                    <p style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', marginTop: 6, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
-                      {item.customization.notes}
-                    </p>
-                  )}
-                  {item.customization?.designUrl && (
-                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                      {/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(item.customization.designUrl) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.customization.designUrl} alt="desain" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }} />
-                      ) : (
-                        <div style={{ width: 44, height: 44, borderRadius: 6, backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📄</div>
-                      )}
-                      <div>
-                        <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 3 }}>File Desain</p>
-                        <a href={item.customization.designUrl} download target="_blank" rel="noreferrer"
-                          style={{ fontSize: 12, color: '#1e3a5f', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                          Download
-                        </a>
-                      </div>
+          {safeItems.length === 0 ? (
+            <div style={{ padding: '20px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 12 }}>
+              Data produk tidak tersedia.
+            </div>
+          ) : (
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+              {safeItems.map((item, i) => (
+                <div key={i} style={{
+                  padding: '14px 16px',
+                  borderBottom: i < safeItems.length - 1 ? '1px solid #f1f5f9' : 'none',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{item.productName}</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', rowGap: 4, columnGap: 16, fontSize: 12, color: '#64748b' }}>
+                      <span>Jenis: <b style={{ color: '#334155' }}>{item.selectedMethod}</b></span>
+                      <span>Qty: <b style={{ color: '#334155' }}>{item.quantity} pcs</b></span>
+                      <span>Harga: <b style={{ color: '#334155' }}>Rp{item.price.toLocaleString('id-ID')}/pcs</b></span>
                     </div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <p style={{ fontSize: 15, fontWeight: 800, color: '#1e3a5f' }}>Rp{(item.price * item.quantity).toLocaleString('id-ID')}</p>
-                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>subtotal</p>
-                </div>
-              </div>
-            ))}
-            {/* Ringkasan biaya */}
-            <div style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
-              {[
-                { label: 'Subtotal Produk', value: `Rp${(order.total - 50000).toLocaleString('id-ID')}` },
-                { label: 'Ongkos Kirim',    value: 'Rp50.000' },
-              ].map(row => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#64748b', marginBottom: 6 }}>
-                  <span>{row.label}</span><span>{row.value}</span>
+                    {item.customization?.notes && (
+                      <p style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', marginTop: 6, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+                        {item.customization.notes}
+                      </p>
+                    )}
+                    {item.customization?.designUrl && (
+                      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                        {/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(item.customization.designUrl) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.customization.designUrl} alt="desain" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 44, height: 44, borderRadius: 6, backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📄</div>
+                        )}
+                        <div>
+                          <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 3 }}>File Desain</p>
+                          <a href={item.customization.designUrl} download target="_blank" rel="noreferrer"
+                            style={{ fontSize: 12, color: '#1e3a5f', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ fontSize: 15, fontWeight: 800, color: '#1e3a5f' }}>Rp{(item.price * item.quantity).toLocaleString('id-ID')}</p>
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>subtotal</p>
+                  </div>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 800, color: '#0f172a', borderTop: '1px solid #e2e8f0', paddingTop: 10, marginTop: 6 }}>
-                <span>Total Pembayaran</span>
-                <span style={{ color: '#1e3a5f' }}>Rp{order.total.toLocaleString('id-ID')}</span>
+              <div style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderTop: '1px solid #e5e7eb' }}>
+                {[
+                  { label: 'Subtotal Produk', value: `Rp${(order.total - 50000).toLocaleString('id-ID')}` },
+                  { label: 'Ongkos Kirim',    value: 'Rp50.000' },
+                ].map(row => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#64748b', marginBottom: 6 }}>
+                    <span>{row.label}</span><span>{row.value}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 800, color: '#0f172a', borderTop: '1px solid #e2e8f0', paddingTop: 10, marginTop: 6 }}>
+                  <span>Total Pembayaran</span>
+                  <span style={{ color: '#1e3a5f' }}>Rp{order.total.toLocaleString('id-ID')}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* ── 4. Pengiriman ── */}
+        {/* Alamat Pengiriman */}
         <div>
           <SectionTitle>Alamat Pengiriman</SectionTitle>
           <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px' }}>
@@ -296,12 +279,12 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
           </div>
         </div>
 
-        {/* ── 5. Pembayaran ── */}
+        {/* Pembayaran */}
         <div>
           <SectionTitle>Pembayaran</SectionTitle>
           <InfoGrid items={[
-            { label: 'Status',   value: ps ? <Chip label={ps.label} bg={ps.bg} text={ps.text} /> : order.paymentStatus },
-            { label: 'Total',    value: <span style={{ color: '#1e3a5f', fontWeight: 800 }}>Rp{order.total.toLocaleString('id-ID')}</span> },
+            { label: 'Status',  value: ps ? <Chip label={ps.label} bg={ps.bg} text={ps.text} /> : order.paymentStatus },
+            { label: 'Total',   value: <span style={{ color: '#1e3a5f', fontWeight: 800 }}>Rp{order.total.toLocaleString('id-ID')}</span> },
             { label: 'Tanggal', value: new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) },
           ]} />
         </div>
@@ -330,9 +313,10 @@ export default function PesananSayaPage() {
   }
 
   const myOrders = useMemo(
-    () => orders
-      .filter(o => String(o.userId) === String(user?.id))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    () =>
+      orders
+        .filter(o => String(o.userId) === String(user?.id))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [orders, user?.id]
   )
 
@@ -342,10 +326,13 @@ export default function PesananSayaPage() {
     let list = filterStatus === 'all' ? myOrders : myOrders.filter(o => o.status === filterStatus)
     if (search.trim()) {
       const q = search.trim().toLowerCase()
-      list = list.filter(o =>
-        o.orderNumber.toLowerCase().includes(q) ||
-        o.items.some(i => i.productName.toLowerCase().includes(q))
-      )
+      list = list.filter(o => {
+        const safeItems = o.items ?? []
+        return (
+          o.orderNumber.toLowerCase().includes(q) ||
+          safeItems.some(i => i.productName.toLowerCase().includes(q))
+        )
+      })
     }
     return list
   }, [myOrders, filterStatus, search])
@@ -356,9 +343,7 @@ export default function PesananSayaPage() {
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (!isLoading && !isAuthenticated) {
-    return null
-  }
+  if (!isLoading && !isAuthenticated) return null
 
   if (isLoading) {
     return (
@@ -373,12 +358,12 @@ export default function PesananSayaPage() {
   }
 
   const tabs = [
-    { key: 'all',        label: 'Semua',              count: myOrders.length },
-    { key: 'pending',    label: 'Menunggu',            count: countOf('pending') },
-    { key: 'processing', label: 'Diproses',            count: countOf('processing') },
-    { key: 'shipped',    label: 'Dikirim',             count: countOf('shipped') },
-    { key: 'delivered',  label: 'Selesai',             count: countOf('delivered') },
-    { key: 'cancelled',  label: 'Dibatalkan',          count: countOf('cancelled') },
+    { key: 'all',        label: 'Semua',      count: myOrders.length },
+    { key: 'pending',    label: 'Menunggu',   count: countOf('pending') },
+    { key: 'processing', label: 'Diproses',   count: countOf('processing') },
+    { key: 'shipped',    label: 'Dikirim',    count: countOf('shipped') },
+    { key: 'delivered',  label: 'Selesai',    count: countOf('delivered') },
+    { key: 'cancelled',  label: 'Dibatalkan', count: countOf('cancelled') },
   ]
 
   return (
@@ -387,7 +372,6 @@ export default function PesananSayaPage() {
       <main style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingTop: '64px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 16px 60px' }}>
 
-          {/* ── Page Header ── */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
             <div>
               <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>Pesanan Saya</h1>
@@ -398,7 +382,6 @@ export default function PesananSayaPage() {
             </Link>
           </div>
 
-          {/* ── Search ── */}
           <div style={{ position: 'relative', marginBottom: 20 }}>
             <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#94a3b8' }}
               fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,7 +395,6 @@ export default function PesananSayaPage() {
             />
           </div>
 
-          {/* ── Tabs ── */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 20, overflowX: 'auto', paddingBottom: 2 }}>
             {tabs.map(tab => {
               const active = filterStatus === tab.key
@@ -445,7 +427,6 @@ export default function PesananSayaPage() {
             })}
           </div>
 
-          {/* ── Empty State ── */}
           {filteredOrders.length === 0 && (
             <div style={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '60px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>📦</div>
@@ -461,40 +442,33 @@ export default function PesananSayaPage() {
             </div>
           )}
 
-          {/* ── Order Cards ── */}
           {filteredOrders.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {filteredOrders.map(order => {
                 const isExpanded = expandedId === order.id
                 const os = ORDER_STATUS[order.status]
                 const ps = PAY_STATUS[order.paymentStatus]
-                const totalQty = order.items.reduce((s, i) => s + i.quantity, 0)
+                const safeItems = order.items ?? []
+                const totalQty = safeItems.reduce((s, i) => s + i.quantity, 0)
 
                 return (
                   <div key={order.id}>
-                    {/* Card */}
                     <div
                       onClick={() => setExpandedId(isExpanded ? null : order.id)}
                       style={{
                         backgroundColor: '#fff',
                         border: isExpanded ? '1.5px solid #1e3a5f' : '1px solid #e5e7eb',
-                        borderRadius: 14,
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        boxShadow: isExpanded
-                          ? '0 4px 20px rgba(30,58,95,0.12)'
-                          : '0 1px 4px rgba(0,0,0,0.05)',
+                        borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
+                        boxShadow: isExpanded ? '0 4px 20px rgba(30,58,95,0.12)' : '0 1px 4px rgba(0,0,0,0.05)',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
                       }}
                     >
-                      {/* Card header row */}
                       <div style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         padding: '12px 16px', backgroundColor: isExpanded ? '#f0f4ff' : '#f8fafc',
                         borderBottom: '1px solid #f1f5f9', gap: 8,
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
-                          {/* Status dot */}
                           <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: os?.dot ?? '#94a3b8', flexShrink: 0 }} />
                           <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: '#0f172a' }}>
                             {order.orderNumber}
@@ -515,16 +489,17 @@ export default function PesananSayaPage() {
                         </div>
                       </div>
 
-                      {/* Card body */}
                       <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {order.items.map(i => i.productName).join(', ')}
+                            {safeItems.length > 0 ? safeItems.map(i => i.productName).join(', ') : '—'}
                           </p>
                           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12, color: '#64748b' }}>
-                            <span>Metode: <strong style={{ color: '#334155' }}>{[...new Set(order.items.map(i => i.selectedMethod))].join(', ')}</strong></span>
+                            {safeItems.length > 0 && (
+                              <span>Metode: <strong style={{ color: '#334155' }}>{[...new Set(safeItems.map(i => i.selectedMethod))].join(', ')}</strong></span>
+                            )}
                             <span>Qty: <strong style={{ color: '#334155' }}>{totalQty} pcs</strong></span>
-                            <span>{order.items.length} produk</span>
+                            <span>{safeItems.length} produk</span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -538,14 +513,12 @@ export default function PesananSayaPage() {
                                 fontSize: 12, fontWeight: 700, color: isExpanded ? '#fff' : '#1e3a5f',
                                 backgroundColor: isExpanded ? '#1e3a5f' : '#fff',
                                 border: '1.5px solid #1e3a5f', borderRadius: 7,
-                                padding: '4px 12px', cursor: 'pointer',
-                                transition: 'all 0.15s',
+                                padding: '4px 12px', cursor: 'pointer', transition: 'all 0.15s',
                               }}
                             >
                               {isExpanded ? '▲ Tutup' : 'Lihat Detail'}
                             </button>
 
-                            {/* Tombol Ulasan — hanya pesanan selesai */}
                             {order.status === 'delivered' && (() => {
                               const existingReview = getReviewByOrderId(order.id)
                               return (
@@ -569,7 +542,6 @@ export default function PesananSayaPage() {
                       </div>
                     </div>
 
-                    {/* Detail panel */}
                     {isExpanded && (
                       <OrderDetail order={order} onClose={() => setExpandedId(null)} />
                     )}
@@ -582,12 +554,11 @@ export default function PesananSayaPage() {
       </main>
       <Footer />
 
-      {/* Review Modal */}
       {reviewTarget && user && (
         <ReviewModal
           orderId={reviewTarget.order.id}
-          productId={reviewTarget.order.items[0]?.productId ?? ''}
-          productName={reviewTarget.order.items.map(i => i.productName).join(', ')}
+          productId={reviewTarget.order.items?.[0]?.productId ?? ''}
+          productName={(reviewTarget.order.items ?? []).map(i => i.productName).join(', ')}
           userId={String(user.id)}
           userFullName={user.fullName}
           existingReview={getReviewByOrderId(reviewTarget.order.id)}
@@ -596,7 +567,6 @@ export default function PesananSayaPage() {
         />
       )}
 
-      {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
