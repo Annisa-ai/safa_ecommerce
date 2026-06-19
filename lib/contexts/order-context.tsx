@@ -94,22 +94,35 @@ export function OrderProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          else if (payload.eventType === 'UPDATE') {
-            const updatedItem = payload.new
-            setOrders(prev =>
-              prev.map(order =>
-                order.id === updatedItem.id
-                  ? {
-                      ...order,
-                      status: updatedItem.status,
-                      paymentStatus: updatedItem.payment_status || order.paymentStatus,
-                      total: Number(updatedItem.final_price ?? updatedItem.total ?? order.total),
-                      updatedAt: new Date(updatedItem.updated_at || Date.now()),
-                    }
-                  : order
-              )
-            )
+        else if (payload.eventType === 'UPDATE') {
+  const updatedItem = payload.new
+
+  const newPaymentStatus = updatedItem.payment_status || 'pending'
+
+  setOrders(prev =>
+    prev.map(order =>
+      order.id === updatedItem.id
+        ? {
+            ...order,
+            status:
+              newPaymentStatus === 'paid'
+                ? 'processing'
+                : updatedItem.status,
+
+            paymentStatus: newPaymentStatus,
+
+            total: Number(
+              updatedItem.final_price ?? updatedItem.total ?? order.total
+            ),
+
+            updatedAt: new Date(
+              updatedItem.updated_at || Date.now()
+            ),
           }
+        : order
+    )
+  )
+}
         }
       )
       .subscribe()

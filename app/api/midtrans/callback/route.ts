@@ -99,20 +99,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Build update data
-    const updateData: any = {
-      payment_status: paymentStatus,
-      payment_reference: transactionId || existingOrder.payment_reference,
-      payment_details: {
-        transaction_id: transactionId,
-        transaction_status: transactionStatus,
-        fraud_status: fraudStatus,
-        payment_type: paymentType,
-        transaction_time: transactionTime,
-        settlement_time: settlementTime,
-        status_message: statusMessage,
-        raw_notification: body,
-      },
-    }
+   const updateData: any = {
+    payment_status: paymentStatus,
+    payment_reference: transactionId || existingOrder.payment_reference,
+    payment_details: {
+      transaction_id: transactionId,
+      transaction_status: transactionStatus,
+      fraud_status: fraudStatus,
+      payment_type: paymentType,
+      transaction_time: transactionTime,
+      settlement_time: settlementTime,
+      status_message: statusMessage,
+      raw_notification: body,
+    },
+  }
+  // 🔥 AUTO UPDATE ORDER STATUS
+if (paymentStatus === 'paid') {
+  updateData.status = 'processing'
+  updateData.payment_paid_at = settlementTime
+    ? new Date(settlementTime).toISOString()
+    : new Date().toISOString()
+}
 
     // If payment is successful, set paid_at timestamp
     if (paymentStatus === 'paid') {
