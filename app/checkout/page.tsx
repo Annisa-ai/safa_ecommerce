@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -240,13 +240,6 @@ export default function CheckoutPage() {
       setMidtransSnapToken(midtransData.snapToken)
       setMidtransTransactionId(midtransData.transactionId || orderNumber)
 
-      // 3. Create local order (in-memory state for UI reactivity)
-      const newOrder = createLocalOrder(orderNumber, targetUserId)
-      cutLocalStock()
-      addOrder(newOrder)
-      sendNotifications(orderNumber, targetUserId)
-      clearCart()
-
     } catch (error: any) {
       console.error(error)
       alert(error.message || 'Gagal membuat pesanan. Silakan coba lagi.')
@@ -254,6 +247,17 @@ export default function CheckoutPage() {
       setLoading(false)
     }
   }
+
+  const handleMidtransSuccess = useCallback(() => {
+    const orderNumber = midtransTransactionId || `ORD-${Date.now()}`
+    const targetUserId = userId || `user-${Date.now()}`
+    const newOrder = createLocalOrder(orderNumber, targetUserId)
+    cutLocalStock()
+    addOrder(newOrder)
+    sendNotifications(orderNumber, targetUserId)
+    clearCart()
+    router.push('/checkout/success?order_id=' + encodeURIComponent(orderNumber))
+  }, [midtransTransactionId, userId, cartItems, designs, subtotal, shippingSelection, total, address, products, updateProduct, addOrder, clearCart, addNotification, router])
 
   const midtransSnapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL ||
     (process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
@@ -579,7 +583,7 @@ export default function CheckoutPage() {
                             <MidtransPaymentButton
                               snapToken={midtransSnapToken}
                               amount={total}
-                              onSuccess={() => router.push('/checkout/success?order_id=' + encodeURIComponent(midtransTransactionId || ''))}
+                              onSuccess={handleMidtransSuccess}
                               onError={(err) => alert('Pembayaran gagal: ' + err)}
                               onClose={() => {/* User closed popup */ }}
                             />
